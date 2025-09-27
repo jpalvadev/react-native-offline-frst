@@ -1,4 +1,4 @@
-import { api, Todo } from '@/utils/api';
+import { api } from '@/utils/api';
 import NetInfo from '@react-native-community/netinfo';
 
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
@@ -10,11 +10,17 @@ import { MMKV } from 'react-native-mmkv';
 
 const queryClient = new QueryClient();
 
-// definir mutation defaults globales
-queryClient.setMutationDefaults(['todos'], {
-    mutationFn: (todo: Todo) => {
-        return api.updateTodo(todo);
-    },
+// Configurar mutation defaults para todos
+queryClient.setMutationDefaults(['todos', 'create'], {
+    mutationFn: api.createTodo,
+});
+
+queryClient.setMutationDefaults(['todos', 'update'], {
+    mutationFn: api.updateTodo,
+});
+
+queryClient.setMutationDefaults(['todos', 'delete'], {
+    mutationFn: api.deleteTodo,
 });
 
 const storage = new MMKV();
@@ -43,7 +49,6 @@ export default function RootLayout() {
         return NetInfo.addEventListener((state) => {
             const status = !!state.isConnected;
             onlineManager.setOnline(status);
-            console.log(state.isConnected);
         });
     }, []);
 

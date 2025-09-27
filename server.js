@@ -63,6 +63,9 @@ app.put('/todos/:id', (req, res) => {
 // 👉 Delete todo
 app.delete('/todos/:id', (req, res) => {
     const index = todos.findIndex((t) => t.id === parseInt(req.params.id));
+
+    console.log('DELETE TODO: ', req.params.id);
+
     if (index === -1) {
         return res.status(404).json({ error: 'Todo not found' });
     }

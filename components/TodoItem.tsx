@@ -5,9 +5,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 interface Props {
     todo: Todo;
     onPress: (todo: Todo) => void;
+    onLongPress: (todo: Todo) => void;
 }
 
-const TodoItem: React.FC<Props> = ({ todo, onPress }) => {
+const TodoItem: React.FC<Props> = ({ todo, onPress, onLongPress }) => {
     return (
         <View style={styles.container}>
             <Text style={{ padding: 16 }}>{todo.title}</Text>
@@ -17,6 +18,7 @@ const TodoItem: React.FC<Props> = ({ todo, onPress }) => {
                     opacity: pressed ? 0.7 : 1,
                 })}
                 onPress={() => onPress(todo)}
+                onLongPress={() => onLongPress(todo)}
             >
                 <Text style={styles.buttonText}>
                     {todo.completed ? 'Done' : 'Pending'}
