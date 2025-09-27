@@ -1,0 +1,235 @@
+Necesito que me hagas un tutorial, desde cero, paso a paso, bien extenso y detallado, sobre como funciona todo este proyecto offline first. Explica todo paso a paso, netinfo, persisters, tanstackquery, asyn storage. COmo se complementan y funcionan todas las partes para llegar a la app final:
+
+_layout.tsx:
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import NetInfo from '@react-native-community/netinfo';
+
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+
+import { onlineManager, QueryClient } from '@tanstack/react-query';
+
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+
+import { Stack } from 'expo-router';
+
+import { useEffect } from 'react';
+
+
+
+const queryClient = new QueryClient();
+
+
+
+const persister = createAsyncStoragePersister({
+
+    storage: AsyncStorage,
+
+    throttleTime: 3000,
+
+});
+
+
+
+export default function RootLayout() {
+
+    useEffect(() => {
+
+        return NetInfo.addEventListener((state) => {
+
+            const status = !!state.isConnected;
+
+            onlineManager.setOnline(status);
+
+            console.log(state.isConnected);
+
+        });
+
+    }, []);
+
+
+
+    return (
+
+        <PersistQueryClientProvider
+
+            onSuccess={() =>
+
+                queryClient
+
+                    .resumePausedMutations()
+
+                    .then(() => queryClient.invalidateQueries())
+
+            }
+
+            persistOptions={{ persister }}
+
+            client={queryClient}
+
+        >
+
+            <Stack />
+
+        </PersistQueryClientProvider>
+
+    );
+
+}
+
+
+
+
+
+index.tsx
+
+import TodoItem from '@/components/TodoItem';
+
+import { api, Todo } from '@/utils/api';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { FlatList, View } from 'react-native';
+
+
+
+export default function Index() {
+
+    const queryClient = useQueryClient();
+
+
+
+    const { data, isPending } = useQuery({
+
+        queryKey: ['todos'],
+
+        queryFn: () => api.getTodos(),
+
+        staleTime: Infinity,
+
+    });
+
+
+
+    const updateLocalTodoList = (
+
+        id: number,
+
+        completed: boolean,
+
+        isSynced: boolean
+
+    ) => {
+
+        queryClient.setQueryData<Todo[]>(['todos'], (todoList) => {
+
+            return todoList?.map((todo) => {
+
+                if (todo.id === id) {
+
+                    return { ...todo, completed, isSynced };
+
+                }
+
+                return todo;
+
+            });
+
+        });
+
+    };
+
+
+
+    const updateTodo = useMutation({
+
+        mutationKey: ['todos'],
+
+        mutationFn: async (todo: Todo) => {
+
+            api.updateTodo(todo);
+
+        },
+
+        onMutate: async (todo: Todo) => {
+
+            await queryClient.cancelQueries({ queryKey: ['todos'] });
+
+            updateLocalTodoList(todo.id, todo.completed, false);
+
+        },
+
+        onSuccess(data, variables) {
+
+            updateLocalTodoList(variables.id, variables.completed, true);
+
+        },
+
+    });
+
+
+
+    if (isPending) {
+
+        return;
+
+    }
+
+
+
+    const handleChangeCompleted = (todo: Todo) => {
+
+        const newCompleted = !todo.completed;
+
+        updateLocalTodoList(todo.id, newCompleted, false);
+
+        updateTodo.mutate({ ...todo, completed: newCompleted });
+
+    };
+
+
+
+    const renderItem = ({ item }: { item: Todo }) => (
+
+        <TodoItem todo={item} onPress={handleChangeCompleted} />
+
+    );
+
+
+
+    return (
+
+        <View
+
+            style={{
+
+                flex: 1,
+
+                justifyContent: 'center',
+
+                alignItems: 'center',
+
+            }}
+
+        >
+
+            <FlatList
+
+                data={data}
+
+                keyExtractor={(item) => item.id.toString()}
+
+                renderItem={renderItem}
+
+            />
+
+        </View>
+
+    );
+
+}
+
+
+
+Si necesitas hacer alguna pregunta antes de crear el tutorial por favor hazla

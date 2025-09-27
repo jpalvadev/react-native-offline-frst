@@ -1,24 +1,46 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { api, Todo } from '@/utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { onlineManager, QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect } from 'react';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const queryClient = new QueryClient();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// definir mutation defaults globales
+queryClient.setMutationDefaults(['todos'], {
+    mutationFn: (todo: Todo) => {
+        return api.updateTodo(todo);
+    },
+});
+
+const persister = createAsyncStoragePersister({
+    storage: AsyncStorage,
+    throttleTime: 3000,
+});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    useEffect(() => {
+        return NetInfo.addEventListener((state) => {
+            const status = !!state.isConnected;
+            onlineManager.setOnline(status);
+            console.log(state.isConnected);
+        });
+    }, []);
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    return (
+        <PersistQueryClientProvider
+            onSuccess={() =>
+                queryClient
+                    .resumePausedMutations()
+                    .then(() => queryClient.invalidateQueries())
+            }
+            persistOptions={{ persister }}
+            client={queryClient}
+        >
+            <Stack />
+        </PersistQueryClientProvider>
+    );
 }
