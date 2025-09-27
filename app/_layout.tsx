@@ -1,11 +1,12 @@
 import { api, Todo } from '@/utils/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { onlineManager, QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
+import { MMKV } from 'react-native-mmkv';
 
 const queryClient = new QueryClient();
 
@@ -16,8 +17,24 @@ queryClient.setMutationDefaults(['todos'], {
     },
 });
 
-const persister = createAsyncStoragePersister({
-    storage: AsyncStorage,
+const storage = new MMKV();
+
+const clientStorage = {
+    setItem: (key: string, value: string) => {
+        storage.set(key, value);
+    },
+    getItem: (key: string) => {
+        const value = storage.getString(key);
+        return value === undefined ? null : value;
+    },
+    removeItem: (key: string) => {
+        storage.delete(key);
+    },
+};
+
+// MMKV
+const persister = createSyncStoragePersister({
+    storage: clientStorage,
     throttleTime: 3000,
 });
 
