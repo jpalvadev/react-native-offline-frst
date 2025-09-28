@@ -1,11 +1,11 @@
 import TodoItem from '@/components/TodoItem';
-import { useOfflineEntity } from '@/hooks/useOfflineEntity';
+import { useQueryOfflineFirst } from '@/hooks/useQueryOfflineFirst';
 import { api, Todo } from '@/utils/api';
 import { FlatList, View } from 'react-native';
 
 export default function Index() {
     const { data, isPending, updateEntity, deleteEntity, createEntity } =
-        useOfflineEntity<Todo>({
+        useQueryOfflineFirst<Todo>({
             queryKey: ['todos'],
             fetchFn: api.getTodos,
             createFn: api.createTodo,

@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
  * - deleteFn: función que elimina una entidad en la API (ej: api.deleteTodo)
  * - idKey: el campo que identifica de manera única cada entidad (ej: 'id')
  */
-type UseOfflineEntityOptions<T> = {
+type UseQueryOfflineFirstOptions<T> = {
     queryKey: string[];
     fetchFn: () => Promise<T[]>;
     createFn?: (entity: T) => Promise<T>;
@@ -24,20 +24,20 @@ type UseOfflineEntityOptions<T> = {
  * - Usa actualizaciones optimistas: primero actualiza el cache local, luego sincroniza con la API.
  * - Si no hay internet, React Query pausará las mutaciones y las reintentará cuando vuelva la conexión.
  */
-export function useOfflineEntity<T extends Record<string, any>>({
+export function useQueryOfflineFirst<T extends Record<string, any>>({
     queryKey,
     fetchFn,
     createFn,
     updateFn,
     deleteFn,
     idKey,
-}: UseOfflineEntityOptions<T>) {
+}: UseQueryOfflineFirstOptions<T>) {
     const queryClient = useQueryClient();
 
     // ================================
     // 🔹 1. Query principal (leer lista)
     // ================================
-    const { data, isPending, error } = useQuery({
+    const { data, isPending, error, refetch } = useQuery({
         queryKey,
         queryFn: fetchFn,
         staleTime: Infinity, // nunca se considera "viejo", salvo que vos lo invalides
@@ -131,6 +131,7 @@ export function useOfflineEntity<T extends Record<string, any>>({
         data, // lista de entidades
         isPending, // estado de carga inicial
         error, // error si falla el fetch
+        refetch, // función para refrescar manualmente
         createEntity, // función para crear (optimista + sync)
         updateEntity, // función para actualizar (optimista + sync)
         deleteEntity, // función para eliminar (optimista + sync)
